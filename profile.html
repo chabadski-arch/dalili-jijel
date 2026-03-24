@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دليلي جيجل - بروفيلي</title>
+    <style>
+        body {
+            margin: 0; font-family: 'Segoe UI', sans-serif;
+            background: #0f172a; color: white; padding: 20px;
+        }
+        .profile-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px; border-radius: 20px;
+            max-width: 450px; margin: 0 auto; text-align: center;
+        }
+        .profile-img {
+            width: 100px; height: 100px; border-radius: 50%;
+            object-fit: cover; border: 3px solid #3b82f6;
+            margin-bottom: 15px;
+        }
+        .status-toggle {
+            display: flex; justify-content: center; gap: 10px; margin: 20px 0;
+        }
+        .btn-status {
+            padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;
+        }
+        .available { background: #10b981; color: white; }
+        .busy { background: #ef4444; color: white; }
+        
+        .input-group { text-align: right; margin-bottom: 15px; }
+        input, select, textarea {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2); color: white;
+        }
+        .btn-update {
+            width: 100%; padding: 14px; background: #3b82f6;
+            color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="profile-card">
+        <img id="displayImg" src="https://via.placeholder.com/100" class="profile-img">
+        <h2 id="displayName">جاري التحميل...</h2>
+        <p id="displayJob" style="color: #94a3b8;"></p>
+
+        <div class="status-toggle">
+            <button id="btnAvail" class="btn-status available">متوفر ✅</button>
+            <button id="btnBusy" class="btn-status busy">مشغول ❌</button>
+        </div>
+
+        <form id="updateForm">
+            <div class="input-group">
+                <label>تعديل الوصف</label>
+                <textarea id="editDesc"></textarea>
+            </div>
+            <div class="input-group">
+                <label>تغيير الصورة</label>
+                <input type="file" id="newImg" accept="image/*">
+            </div>
+            <button type="submit" class="btn-update">حفظ التغييرات 💾</button>
+        </form>
+        <br>
+        <a href="home.html" style="color: #64748b; text-decoration: none; font-size: 13px;">🔙 العودة للرئيسية</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWNO7w6izvo_QxF-yLNS9t41R9s5nTK84",
+            authDomain: "dalili-jijel.firebaseapp.com",
+            databaseURL: "https://dalili-jijel-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "dalili-jijel",
+            storageBucket: "dalili-jijel.firebasestorage.app",
+            messagingSenderId: "456094589466",
+            appId: "1:456094589466:web:ae19e48570a18a99d6e7a3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // جلب رقم الحرفي من الجلسة
+        const phone = sessionStorage.getItem('userPhone');
+        const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dl7naqwx8/image/upload";
+        const CLOUDINARY_PRESET = "dalili_preset";
+
+        // 1. جلب البيانات الحالية
+        async function loadProfile() {
+            const snapshot = await get(ref(db, 'professionals/' + phone));
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                document.getElementById('displayName').innerText = data.name;
+                document.getElementById('displayJob').innerText = data.job;
+                document.getElementById('editDesc').value = data.description || "";
+                document.getElementById('displayImg').src = data.image || "https://via.placeholder.com/100";
+            }
+        }
+        loadProfile();
+
+        // 2. تحديث الحالة (متوفر/مشغول)
+        document.getElementById('btnAvail').onclick = () => updateStatus("متوفر");
+        document.getElementById('btnBusy').onclick = () => updateStatus("مشغول");
+
+        async function updateStatus(newStatus) {
+            await update(ref(db, 'professionals/' + phone), { status: newStatus });
+            alert("تم تحديث حالتك إلى: " + newStatus);
+        }
+
+        // 3. تحديث البيانات والصورة
+        document.getElementById('updateForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const file = document.getElementById('newImg').files[0];
+            let updates = { description: document.getElementById('editDesc').value };
+
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_PRESET);
+                const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+                const data = await res.json();
+                updates.image = data.secure_url;
+            }
+
+            await update(ref(db, 'professionals/' + phone), updates);
+            alert("تم التحديث بنجاح! ✨");
+            location.reload();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دليلي جيجل - انضم إلينا</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
+            min-height: 100vh; color: white; padding: 20px;
+        }
+        .header-back { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .btn-back { text-decoration: none; color: #94a3b8; font-size: 20px; }
+        .form-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px; border-radius: 20px;
+            max-width: 450px; margin: 0 auto;
+        }
+        h2 { color: #3b82f6; margin-top: 0; }
+        .input-group { margin-bottom: 15px; text-align: right; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
+        input, select, textarea {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2); color: white;
+            box-sizing: border-box; outline: none; font-size: 14px;
+        }
+        textarea { height: 80px; resize: none; }
+        .btn-submit {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            color: white; font-size: 16px; font-weight: bold;
+            cursor: pointer; margin-top: 20px; transition: 0.3s;
+        }
+        .btn-submit:disabled { background: #64748b; cursor: not-allowed; }
+        #statusMsg { font-size: 12px; text-align: center; margin-top: 10px; color: #3b82f6; }
+    </style>
+</head>
+<body>
+
+    <div class="header-back">
+        <a href="home.html" class="btn-back">🔙</a>
+        <h3 style="margin:0">العودة للرئيسية</h3>
+    </div>
+
+    <div class="form-card">
+        <h2>سجل كحرفي 🛠️</h2>
+        <form id="addProForm">
+            <div class="input-group">
+                <label>اسمك الكامل أو اسم النشاط</label>
+                <input type="text" id="proName" placeholder="مثال: ورشة الأمين" required>
+            </div>
+
+            <div class="input-group">
+                <label>الحرفة (التخصص)</label>
+                <select id="proJob" required>
+                    <option value="" disabled selected>اختر حرفتك</option>
+                    <option value="سباك">سباك (Plombier)</option>
+                    <option value="كهربائي">كهربائي</option>
+                    <option value="بناء">بناء (Maçon)</option>
+                    <option value="دهان">دهان</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>البلدية</label>
+                <select id="proCity" required>
+                    <option value="" disabled selected>اختر مكان عملك</option>
+                    <option value="الميلية">الميلية</option>
+                    <option value="جيجل">جيجل</option>
+                    <option value="الطاهير">الطاهير</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>رقم هاتف العمل</label>
+                <input type="tel" id="proPhone" placeholder="06XXXXXXXX" required>
+            </div>
+
+            <div class="input-group">
+                <label>صورة بروفايل أو صورة لعملك (اختياري)</label>
+                <input type="file" id="proImage" accept="image/*">
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-submit">نشر بروفيلي الآن 🚀</button>
+            <div id="statusMsg"></div>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWNO7w6izvo_QxF-yLNS9t41R9s5nTK84",
+            authDomain: "dalili-jijel.firebaseapp.com",
+            databaseURL: "https://dalili-jijel-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "dalili-jijel",
+            storageBucket: "dalili-jijel.firebasestorage.app",
+            messagingSenderId: "456094589466",
+            appId: "1:456094589466:web:ae19e48570a18a99d6e7a3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 🎯 إضافة: جلب بيانات الحرفي تلقائياً من الجلسة (الربط)
+        window.onload = () => {
+            const savedName = sessionStorage.getItem('userName');
+            const savedPhone = sessionStorage.getItem('userPhone');
+            if(savedName) document.getElementById('proName').value = savedName;
+            if(savedPhone) document.getElementById('proPhone').value = savedPhone;
+        };
+
+        const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dl7naqwx8/image/upload";
+        const CLOUDINARY_PRESET = "dalili_preset";
+
+        const form = document.getElementById('addProForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusMsg = document.getElementById('statusMsg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitBtn.disabled = true;
+            statusMsg.innerText = "جاري معالجة البيانات والرفع... ⏳";
+
+            const file = document.getElementById('proImage').files[0];
+            let imageUrl = "https://via.placeholder.com/150"; 
+
+            try {
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', CLOUDINARY_PRESET);
+
+                    const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.secure_url) {
+                        imageUrl = data.secure_url;
+                    }
+                }
+
+                const phone = document.getElementById('proPhone').value;
+                await set(ref(db, 'professionals/' + phone), {
+                    name: document.getElementById('proName').value,
+                    job: document.getElementById('proJob').value,
+                    city: document.getElementById('proCity').value,
+                    phone: phone,
+                    image: imageUrl,
+                    status: "متوفر",
+                    createdAt: new Date().toISOString()
+                });
+
+                alert("مبروك يا وليد بلادي! بروفايلك راهو مباشر في دليلي جيجل 🌊");
+                window.location.href = "home.html";
+
+            } catch (error) {
+                console.error(error);
+                alert("حدث خطأ أثناء الرفع، حاول مجدداً.");
+                submitBtn.disabled = false;
+                statusMsg.innerText = "";
+            }
+        });
+    </script>
+</body>
+</html>

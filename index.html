@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دليلي جيجل - دخول</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
+            height: 100vh;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: white;
+        }
+
+        /* تعديل: المساحة الإعلانية أصبحت رابطاً وتدعم الصور */
+        .ad-space-top {
+            width: 90%; max-width: 400px; height: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 10px; font-size: 14px; color: #94a3b8;
+            text-decoration: none; overflow: hidden; /* للحفاظ على تنسيق الصورة */
+            transition: 0.3s;
+        }
+        
+        .ad-space-top:hover { background: rgba(255, 255, 255, 0.1); border-color: #3b82f6; }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px; border-radius: 20px;
+            width: 85%; max-width: 350px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h2 { margin-bottom: 25px; font-weight: 300; color: #3b82f6; }
+
+        .input-group { margin-bottom: 20px; text-align: right; }
+
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #cbd5e1; }
+
+        input {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2); color: white;
+            box-sizing: border-box; outline: none; transition: 0.3s;
+        }
+
+        input:focus { border-color: #3b82f6; background: rgba(0, 0, 0, 0.3); }
+
+        .btn-login {
+            width: 100%; padding: 12px; border: none; border-radius: 10px;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            color: white; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: 0.3s; margin-bottom: 15px;
+        }
+
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4); }
+
+        .signup-link { font-size: 14px; color: #cbd5e1; margin-top: 10px; }
+
+        .signup-link a { color: #3b82f6; text-decoration: none; font-weight: bold; }
+
+        .footer-text { margin-top: 25px; font-size: 11px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <a href="ad-details.html" class="ad-space-top" id="adLink">
+        <span id="adText">جاري تحميل أحدث العروض... 📢</span>
+    </a>
+
+    <div class="login-card">
+        <h2>دليلي جيجل 🌊</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label>رقم الهاتف</label>
+                <input type="tel" id="loginPhone" placeholder="06XXXXXXXX" required>
+            </div>
+            <div class="input-group">
+                <label>كلمة السر</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-login">دخول</button>
+        </form>
+
+        <div class="signup-link">
+            ليس لديك حساب؟ 
+            <a href="signup.html">سجل الآن</a>
+        </div>
+
+        <p class="footer-text">كل الحرفيين في ولاية جيجل في مكان واحد.</p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, get, child, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAWNO7w6izvo_QxF-yLNS9t41R9s5nTK84",
+            authDomain: "dalili-jijel.firebaseapp.com",
+            databaseURL: "https://dalili-jijel-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "dalili-jijel",
+            storageBucket: "dalili-jijel.firebasestorage.app",
+            messagingSenderId: "456094589466",
+            appId: "1:456094589466:web:ae19e48570a18a99d6e7a3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // 🎯 إضافة: كود جلب الإعلان من الأدمن ليظهر في صفحة الدخول
+        onValue(ref(db, 'ads/current'), (snapshot) => {
+            const adData = snapshot.val();
+            if (adData) {
+                document.getElementById('adText').innerText = `إعلان: ${adData.title} 📢`;
+                // اختياري: تغيير الخلفية لصورة الإعلان المصغرة
+                if(adData.image) {
+                    document.getElementById('adLink').style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${adData.image}')`;
+                    document.getElementById('adLink').style.backgroundSize = 'cover';
+                    document.getElementById('adLink').style.color = 'white';
+                }
+            }
+        });
+
+        const loginForm = document.getElementById('loginForm');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const phone = document.getElementById('loginPhone').value;
+            const pass = document.getElementById('loginPassword').value;
+            const ADMIN_PHONE = "0675545966"; 
+
+            try {
+                const dbRef = ref(db);
+                const snapshot = await get(child(dbRef, `users/${phone}`));
+
+                if (snapshot.exists()) {
+                    const userData = snapshot.val();
+                    
+                    if (userData.password === pass) {
+                        sessionStorage.setItem('isLoggedIn', 'true');
+                        sessionStorage.setItem('userName', userData.fullName);
+                        sessionStorage.setItem('userPhone', phone);
+                        sessionStorage.setItem('userRole', userData.role);
+
+                        if (phone === ADMIN_PHONE) {
+                            alert(`مرحباً بك أيها المدير ${userData.fullName}!`);
+                            window.location.href = "admin.html";
+                        } else if (userData.role === "pro") {
+                            alert(`أهلاً بك يا ${userData.fullName}. جاري الانتقال لصفحة خدماتك.`);
+                            window.location.href = "add-pro.html"; 
+                        } else {
+                            alert(`مرحباً بك مجدداً يا ${userData.fullName}!`);
+                            window.location.href = "home.html";
+                        }
+                    } else {
+                        alert("كلمة السر خاطئة، أعد المحاولة.");
+                    }
+                } else {
+                    alert("هذا الرقم غير مسجل في دليلي جيجل.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("حدث خطأ في الاتصال بالقاعدة.");
+            }
+        });
+    </script>
+</body>
+</html>

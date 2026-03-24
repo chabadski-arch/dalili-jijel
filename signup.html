@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دليلي جيجل - حساب جديد</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            color: white; padding: 20px 0;
+        }
+        .signup-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px; border-radius: 20px;
+            width: 90%; max-width: 400px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+        h2 { text-align: center; margin-bottom: 20px; color: #3b82f6; }
+        .input-group { margin-bottom: 15px; text-align: right; }
+        label { display: block; margin-bottom: 5px; font-size: 13px; color: #94a3b8; }
+        input, select {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2); color: white;
+            box-sizing: border-box; outline: none; font-size: 14px;
+        }
+        select option { background: #1e293b; color: white; }
+        .btn-register {
+            width: 100%; padding: 12px; border: none; border-radius: 10px;
+            background: linear-gradient(90deg, #10b981, #059669);
+            color: white; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        .btn-register:hover { opacity: 0.9; transform: translateY(-2px); }
+        .login-link { text-align: center; margin-top: 15px; font-size: 13px; color: #cbd5e1; }
+        
+        /* تمييز اختيار نوع الحساب */
+        .role-selection {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="signup-card">
+    <h2>حساب جديد 🌊</h2>
+    <form id="signupForm">
+        <div class="input-group">
+            <label>الاسم الكامل</label>
+            <input type="text" id="fullName" placeholder="مثال: شامخ باديس" required>
+        </div>
+        <div class="input-group">
+            <label>رقم الهاتف</label>
+            <input type="tel" id="phone" placeholder="06XXXXXXXX" required>
+        </div>
+        
+        <div class="input-group role-selection">
+            <label style="color: #3b82f6; font-weight: bold;">نوع الحساب</label>
+            <select id="userRole" required>
+                <option value="user">أنا أبحث عن حرفي (زبون)</option>
+                <option value="pro">أنا حرفي (أريد تقديم خدماتي)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>البلدية (ولاية جيجل)</label>
+            <select id="municipality" required>
+                <option value="" disabled selected>اختر بلديتك</option>
+                <option value="الميلية">الميلية</option>
+                <option value="جيجل">جيجل</option>
+                <option value="الطاهير">الطاهير</option>
+                <option value="العوانة">العوانة</option>
+                <option value="زيامة منصورية">زيامة منصورية</option>
+                <option value="الشقفة">الشقفة</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>كلمة السر</label>
+            <input type="password" id="password" placeholder="أدخل كلمة سر قوية" required>
+        </div>
+        <div class="input-group">
+            <label>تأكيد كلمة السر</label>
+            <input type="password" id="confirmPassword" placeholder="أعد كتابة كلمة السر" required>
+            <small id="errorMsg" style="color: #ff4d4d; display: none; font-size: 11px; margin-top: 5px;">⚠️ كلمات السر غير متطابقة!</small>
+        </div>
+        <button type="submit" class="btn-register" id="submitBtn">إنشاء الحساب</button>
+    </form>
+    <div class="login-link">
+        لديك حساب بالفعل؟ <a href="index.html" style="color: #3b82f6; text-decoration: none;">دخول</a>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAWNO7w6izvo_QxF-yLNS9t41R9s5nTK84",
+        authDomain: "dalili-jijel.firebaseapp.com",
+        databaseURL: "https://dalili-jijel-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "dalili-jijel",
+        storageBucket: "dalili-jijel.firebasestorage.app",
+        messagingSenderId: "456094589466",
+        appId: "1:456094589466:web:ae19e48570a18a99d6e7a3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const form = document.getElementById('signupForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const fullName = document.getElementById('fullName').value;
+        const phone = document.getElementById('phone').value;
+        const municipality = document.getElementById('municipality').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const role = document.getElementById('userRole').value;
+
+        if (password !== confirmPassword) {
+            errorMsg.style.display = 'block';
+            return;
+        }
+        errorMsg.style.display = 'none';
+
+        try {
+            const dbRef = ref(db);
+            const snapshot = await get(child(dbRef, `users/${phone}`));
+            
+            if (snapshot.exists()) {
+                alert("عفواً! هذا الرقم مسجل مسبقاً في دليلي جيجل.");
+                return;
+            }
+
+            // حفظ البيانات مع الـ Role الجديد
+            await set(ref(db, 'users/' + phone), {
+                fullName: fullName,
+                municipality: municipality,
+                password: password,
+                phone: phone,
+                role: role, // 'user' أو 'pro'
+                createdAt: new Date().toISOString()
+            });
+
+            alert("تم إنشاء حسابك بنجاح! سيتم تحويلك لصفحة الدخول.");
+            window.location.href = "index.html";
+
+        } catch (error) {
+            console.error(error);
+            alert("حدث خطأ في الاتصال بقاعدة البيانات.");
+        }
+    });
+</script>
+</body>
+</html>

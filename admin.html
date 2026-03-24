@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - دليلي جيجل</title>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; padding: 20px; }
+        .admin-container { max-width: 600px; margin: 0 auto; }
+        .section { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px; }
+        h2 { color: #3b82f6; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }
+        .input-group { margin-bottom: 15px; text-align: right; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; color: #94a3b8; }
+        input, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #1e293b; color: white; box-sizing: border-box; }
+        .btn-save { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .btn-save:hover { background: #1d4ed8; }
+        #status { text-align: center; margin-top: 10px; font-size: 13px; color: #10b981; }
+        
+        /* تنسيق قائمة الحرفيين للأدمن */
+        .pro-item-admin {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; margin-bottom: 8px;
+        }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="admin-container">
+    <h1>لوحة إدارة التطبيق ⚙️</h1>
+
+    <div class="section">
+        <h2>📢 تعديل الإعلان العلوي وتفاصيل المحل</h2>
+        <form id="adForm">
+            <div class="input-group">
+                <label>اسم المحل / عنوان الإعلان</label>
+                <input type="text" id="adTitle" placeholder="مثال: بيتزا فلان الميلية" required>
+            </div>
+            <div class="input-group">
+                <label>نص الإعلان (العرض والوصف الكامل)</label>
+                <textarea id="adDesc" placeholder="اكتب هنا كل ما تريد أن يظهر في صفحة التفاصيل"></textarea>
+            </div>
+            <div class="input-group">
+                <label>رابط الموقع (Google Maps)</label>
+                <input type="url" id="adMap" placeholder="انسخ رابط الموقع من الخرائط">
+            </div>
+            <div class="input-group">
+                <label>رقم هاتف المحل</label>
+                <input type="tel" id="adPhone" placeholder="06XXXXXXXX">
+            </div>
+            <div class="input-group">
+                <label>صورة الواجهة الرئيسية</label>
+                <input type="file" id="adFile" accept="image/*">
+            </div>
+            <div class="input-group">
+                <label>صور معرض السلعة (يمكنك اختيار عدة صور)</label>
+                <input type="file" id="galleryFiles" accept="image/*" multiple>
+            </div>
+            <button type="submit" class="btn-save">تحديث الإعلان والمعرض الآن 🚀</button>
+        </form>
+        <div id="status"></div>
+    </div>
+
+    <div class="section">
+        <h2>👷 إدارة الحرفيين (التحكم والحذف)</h2>
+        <div id="adminProList">جاري جلب قائمة الحرفيين...</div>
+    </div>
+
+    <div style="text-align: center;">
+        <a href="home.html" style="color: #64748b; text-decoration: none;">👁️ معاينة التطبيق</a>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAWNO7w6izvo_QxF-yLNS9t41R9s5nTK84",
+        authDomain: "dalili-jijel.firebaseapp.com",
+        databaseURL: "https://dalili-jijel-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "dalili-jijel",
+        storageBucket: "dalili-jijel.firebasestorage.app",
+        messagingSenderId: "456094589466",
+        appId: "1:456094589466:web:ae19e48570a18a99d6e7a3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const cloudName = "dl7naqwx8";
+    const preset = "dalili_preset";
+
+    // 1. إدارة الإعلانات والمعرض
+    const adForm = document.getElementById('adForm');
+    const status = document.getElementById('status');
+
+    adForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        status.innerText = "جاري رفع الصور وتحديث البيانات... ⏳";
+        
+        const mainFile = document.getElementById('adFile').files[0];
+        const galleryFiles = document.getElementById('galleryFiles').files;
+        
+        let mainImageUrl = "";
+        let galleryUrls = [];
+
+        try {
+            // رفع الصورة الرئيسية
+            if (mainFile) {
+                mainImageUrl = await uploadToCloudinary(mainFile);
+            }
+
+            // رفع صور المعرض (متعددة)
+            if (galleryFiles.length > 0) {
+                for (let file of galleryFiles) {
+                    const url = await uploadToCloudinary(file);
+                    galleryUrls.push(url);
+                }
+            }
+
+            // حفظ كل شيء في Firebase
+            await set(ref(db, 'ads/current'), {
+                title: document.getElementById('adTitle').value,
+                description: document.getElementById('adDesc').value,
+                mapUrl: document.getElementById('adMap').value,
+                phone: document.getElementById('adPhone').value,
+                image: mainImageUrl || "https://via.placeholder.com/150",
+                gallery: galleryUrls,
+                timestamp: new Date().getTime()
+            });
+
+            status.innerText = "تم التحديث بنجاح! الإعلان والمعرض جاهزان ✅";
+        } catch (err) {
+            console.error(err);
+            status.innerText = "حدث خطأ أثناء الرفع.";
+        }
+    });
+
+    // دالة مساعدة لرفع الصور لـ Cloudinary
+    async function uploadToCloudinary(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', preset);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: formData });
+        const data = await res.json();
+        return data.secure_url;
+    }
+
+    // 2. إدارة الحرفيين (عرض وحذف)
+    const adminProList = document.getElementById('adminProList');
+    onValue(ref(db, 'professionals'), (snapshot) => {
+        const data = snapshot.val();
+        adminProList.innerHTML = "";
+        if (data) {
+            Object.keys(data).forEach(id => {
+                const pro = data[id];
+                const div = document.createElement('div');
+                div.className = 'pro-item-admin';
+                div.innerHTML = `
+                    <span>${pro.name} - ${pro.job} (${pro.city})</span>
+                    <button class="btn-delete" data-id="${id}">حذف</button>
+                `;
+                adminProList.appendChild(div);
+            });
+
+            // ربط أزرار الحذف
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.onclick = () => {
+                    const proId = btn.getAttribute('data-id');
+                    if(confirm("هل أنت متأكد من حذف هذا الحرفي نهائياً؟")) {
+                        remove(ref(db, 'professionals/' + proId));
+                    }
+                };
+            });
+        } else {
+            adminProList.innerText = "لا يوجد حرفيين مسجلين حالياً.";
+        }
+    });
+
+</script>
+</body>
+</html>
