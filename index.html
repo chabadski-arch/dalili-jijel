@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>دليلي جيجل - دخول</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192">
+
     <style>
         body {
             margin: 0; padding: 0;
@@ -70,6 +75,7 @@
 
         .footer-text { margin-top: 25px; font-size: 11px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
     </style>
+    
 </head>
 <body>
 
@@ -98,6 +104,16 @@
 
         <p class="footer-text">كل الحرفيين في ولاية جيجل في مكان واحد.</p>
     </div>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker Registered!'))
+            .catch(err => console.log('Service Worker Failed!', err));
+        });
+      }
+    </script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -156,8 +172,15 @@
                             alert(`مرحباً بك أيها المدير ${userData.fullName}!`);
                             window.location.href = "admin.html";
                         } else if (userData.role === "pro") {
-                            alert(`أهلاً بك يا ${userData.fullName}. جاري الانتقال لصفحة خدماتك.`);
-                            window.location.href = "add-pro.html"; 
+                            // 🎯 التحقق إذا كان الحرفي سجل معلوماته من قبل أم لا
+                            const proRef = ref(db, `professionals/${phone}`);
+                            get(proRef).then((proSnapshot) => {
+                                if (proSnapshot.exists()) {
+                                    window.location.href = "home.html";
+                                } else {
+                                    window.location.href = "add-pro.html";
+                                }
+                            });
                         } else {
                             alert(`مرحباً بك مجدداً يا ${userData.fullName}!`);
                             window.location.href = "home.html";
